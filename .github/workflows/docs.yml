@@ -8,10 +8,27 @@ on:
       - "mkdocs.yml"
       - "minwm/**"
       - ".github/workflows/docs.yml"
+  pull_request:
+    branches: [main, dev-meta]
+    paths:
+      - "docs/**"
+      - "mkdocs.yml"
+      - "minwm/**"
+      - ".github/workflows/docs.yml"
   workflow_dispatch:
 
+# GITHUB_TOKEN scopes: read the repo, plus write the Pages artifact and mint the
+# OIDC token deploy-pages exchanges for a deployment. Least privilege — only the
+# deploy job actually needs pages/id-token, but permissions are workflow-wide.
 permissions:
   contents: read
+  pages: write
+  id-token: write
+
+# Serialize Pages deployments; never cancel an in-flight one mid-publish.
+concurrency:
+  group: pages
+  cancel-in-progress: false
 
 jobs:
   build:
@@ -27,3 +44,21 @@ jobs:
         run: pip install -r docs/requirements.txt
       - name: Build site (strict — validates refs, links, nav)
         run: mkdocs build --strict
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+
+  # Publish only when main advances. PRs and dev-meta pushes stop after the
+  # strict build above, so a broken-link PR fails CI without touching the live site.
+  deploy:
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
