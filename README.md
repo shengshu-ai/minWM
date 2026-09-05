@@ -14,6 +14,7 @@ https://github.com/user-attachments/assets/99c25915-7fe7-4a20-a2c4-9d291502fccf
 
 ## 🔥 News
 
+- **2026-09-05** We release a much better version with an optimized infrastructure — a more elegant, efficient, and systematic system. For the legacy version, see the [migration guide](MIGRATION.md) (old layout preserved at tag `v0.1-legacy`).
 - **2026-05-29** We release the [technical report](https://arxiv.org/pdf/2605.30263).
 - **2026-05-17** We release **minWM** — the first full-stack open-source world model framework.
 
