@@ -9,6 +9,10 @@ license: MIT
 > Reference implementations: HY15 (MMDiT, 8B) and Wan21 (Cross-attention DiT, 1.3B).
 > Whichever path you choose, it usually helps to follow the reference whose architecture is closer to your new backbone.
 
+> Note: the `HY15/`, `Wan21/`, `shared/` reference trees are no longer tracked in
+> git (kept locally as reference). Paths below resolve in a local checkout that
+> still has them; after a fresh clone, restore via `git checkout <sha> -- <tree>`.
+
 ---
 
 ## Framework Layout
@@ -25,7 +29,7 @@ minWM/
 └── shared/                # shared across backbones (SP comms, config bases, algorithms)
 ```
 
-Each backbone is a **self-contained** top-level directory, mounted via `PYTHONPATH`; the two backbones do not import from each other. A new backbone follows the same pattern: create a new top-level directory (e.g. `NewBB/`).
+Each backbone is a **self-contained** top-level directory; the two backbones do not import from each other, and their run-scripts set their own `PYTHONPATH` (only the `minwm` package is pip-installed). A new backbone follows the same pattern: create a new top-level directory (e.g. `NewBB/`).
 
 ---
 
@@ -34,8 +38,8 @@ Each backbone is a **self-contained** top-level directory, mounted via `PYTHONPA
 Wan21 does this in `wan_utils/wan_wrapper.py`, exposing three wrappers:
 
 - `WanDiffusionWrapper`: wraps the DiT, handles forward and the causal/bidirectional switch
-- `WanTextEncoder`: text encoder
-- `WanVAEWrapper`: VAE encode/decode
+- `Wan21TextEncoder`: text encoder
+- `Wan21VAEWrapper`: VAE encode/decode
 
 **Suggested approach**: write the equivalent three wrappers for the new backbone, ideally keeping the interface aligned with:
 

@@ -1,4 +1,4 @@
-# 🌍 minWM: Full-Stack Open-Source Video World Model Framework
+# minWM: The First Full-Stack Open-Source World Model Framework
 
 >  ***A full-stack framework and tutorial for newcomers, rather than a specific model.***
 
@@ -10,33 +10,26 @@
 
 **minWM** is our contribution to the world-model community: a **full-stack open-source framework** that walks you end-to-end through turning a bidirectional T2V foundation model into an action-conditioned video world model — with example data, runnable scripts, **Claude skills** capturing our hands-on experience, and **onboarding knowledge** for newcomers. We hope more researchers and developers join us in growing the community together.
 
-## 🎬 Demo
-
 https://github.com/user-attachments/assets/99c25915-7fe7-4a20-a2c4-9d291502fccf
 
 ## 🔥 News
 
-- **2026-05-29** 🚀 We release the [technical report](https://arxiv.org/pdf/2605.30263).
-- **2026-05-17** 🚀 We release **minWM** — the first full-stack open-source world model framework.
+- **2026-05-29** We release the [technical report](https://arxiv.org/pdf/2605.30263).
+- **2026-05-17** We release **minWM** — the first full-stack open-source world model framework.
 
 
-## 📋 Table of Contents
-
-- [🎬 Demo](#-demo)
-- [🔥 News](#-news)
-- [✨ Why minWM?](#-why-minwm)
+## Table of Contents
+- [Why minWM?](#-why-minwm)
   - [1. Full-Stack Framework](#1-full-stack-framework)
   - [2. Multi-Backbone Support](#2-multi-backbone-support)
-  - [3. Multi-Condition Injection](#3-multi-condition-injection)
-  - [4. Claude Skills — Modify the Framework with an LLM Assistant](#4-claude-skills--modify-the-framework-with-an-llm-assistant)
-  - [5. Onboarding Knowledge — for Newcomers to World Models](#5-onboarding-knowledge--for-newcomers-to-world-models)
-- [🛠️ Installation](#️-installation)
-- [🧱 Model Checkpoints](#-model-checkpoints)
-- [🚀 Quick Start](#-quick-start)
-- [⚙️ Data & Training & Reproduction](#️-data--training--reproduction)
-- [📚 Citation](#-citation)
-- [Contact](#contact)
-- [🙏 Acknowledgements](#-acknowledgements)
+  - [3. Claude Skills — Modify the Framework with an LLM Assistant](#3-claude-skills--modify-the-framework-with-an-llm-assistant)
+- [Installation](#installation)
+- [Inference](#inference)
+  - [1. Download the demo checkpoints](#1-download-the-demo-checkpoints)
+  - [2. Run the demos](#2-run-the-demos)
+  - [3. Optional: overlay the key indicator](#3-optional-overlay-the-key-indicator)
+- [Data & Training & Reproduction](#data--training--reproduction)
+
 
 ## ✨ Why minWM?
 
@@ -59,97 +52,69 @@ Bidirectional SFT      ──▶   Stage 1   Teacher Forcing AR Diffusion
                                          4-step real-time
 ```
 
-**1.3 Inference.**
+**1.3 Inference**: 4-step DMD inference for HY Action2V / HY TI2V / Wan Action2V, multi-GPU sequence parallelism, camera-trajectory control via pose strings (`"a*4,w*8,s*7"`) or JSON files
 
-- ✅ 4-step DMD inference for HY Action2V / HY TI2V / Wan Action2V, multi-GPU sequence parallelism, camera-trajectory control via pose strings (`"a*4,w*8,s*7"`) or JSON files
-- 🚧 Inference acceleration [TBD]
 
 ### 2. Multi-Backbone Support
 
-minWM supports two paths to arriving at an interactive world model.
-
-#### 2.1 From Scratch: Bidirectional T2V Foundation → Real-Time World Model
+> From Scratch: Bidirectional T2V Foundation → Real-Time World Model
 
 The HunyuanVideo 1.5 and Wan 2.1 lines walk through the full 4-stage pipeline — starting from a bidirectional T2V foundation model and ending at a 4-step autoregressive world model.
 
-
 | Backbone             | Architecture          | Params | Training       | Inference    |
 | -------------------- | --------------------- | ------ | -------------- | ------------ |
-| **Wan 2.1**          | Cross-attention + DiT | 1.3 B  | ✅ all 4 stages | ✅ 4-step DMD |
-| **HunyuanVideo 1.5** | MMDiT                 | 8 B    | ✅ all 4 stages | ✅ 4-step DMD |
-
-
+| **Wan 2.1**          | Cross-attention + DiT | 1.3 B  | all 4 stages | 4-step DMD |
+| **HunyuanVideo 1.5** | MMDiT                 | 8 B    | all 4 stages | 4-step DMD |
 
 Both lines share the same trainer / loss / dataset abstractions, so adding a third backbone is structurally a wrapper-and-config exercise.
 
-#### 2.2 Finetuning an Existing Video World Model 🚧 [TBD]
-
-The forthcoming `worldplay-finetune` entry will let you start from an already-trained video world model and adapt it to new conditions, scenes, or resolutions — without rerunning the 4-stage pipeline from scratch.
-
-### 3. Multi-Condition Injection
-
-We aim to support both multiple condition types and multiple injection methods, mixable along either axis.
-
-#### 3.1 Supported Conditions
-
-- ✅ Camera pose
-- 🚧 Human pose [TBD]
-
-#### 3.2 Supported Injection Methods
-
-- ✅ ProPE
-- 🚧 Latent concat [TBD]
-- 🚧 Cross-attention [TBD]
-
-### 4. Claude Skills — Modify the Framework with an LLM Assistant
+### 3. Claude Skills — Modify the Framework with an LLM Assistant
 We are packaging our project experience across the CF / CF++ pipeline as Claude skills, so that an LLM assistant can help users debug failures and integrate new models without reverse-engineering the whole repo.
 
-- 🐛 **`debug-world-model`** — collected failure modes from the training pipeline (loss NaN, frame-to-frame jitter, camera drift, memory attenuation, distillation collapse, …). Claude diagnoses likely root causes from your symptoms instead of guessing.
-- 🔌 **`integrate-new-backbone`** — step-by-step recipe for plugging a new video DiT into minWM, grounded in the HunyuanVideo and Wan reference integrations — e.g. *"look at how HY does teacher forcing here, do the same for your model there"*.
-
-### 5. Onboarding Knowledge — for Newcomers to World Models
-
-- `onboarding-world-model`
-
-A third Claude skill aimed at researchers entering the world-model space for the first time. Two parts:
-
-- 🎓 **Foundations** — the minimal background to follow the pipeline: Teacher Forcing for AR diffusion training and Causal Forcing & Causal Forcing++ for AR diffusion distillation.
-- 🪤 **Pitfalls** — the non-obvious mistakes we hit while building minWM, distilled so you don't repeat them.
+- **`debug-world-model`** — collected failure modes from the training pipeline (loss NaN, frame-to-frame jitter, camera drift, memory attenuation, distillation collapse, …). Claude diagnoses likely root causes from your symptoms instead of guessing.
+- **`integrate-new-backbone`** — step-by-step recipe for plugging a new video DiT into minWM, grounded in the HunyuanVideo and Wan reference integrations — e.g. *"look at how HY does teacher forcing here, do the same for your model there"*.
+- **`onboarding-world-model`** — A third Claude skill aimed at researchers entering the world-model space for the first time. Two parts:
+    - **Foundations** — the minimal background to follow the pipeline: Teacher Forcing for AR diffusion training and Causal Forcing & Causal Forcing++ for AR diffusion distillation.
+    - **Pitfalls** — the non-obvious mistakes we hit while building minWM, distilled so you don't repeat them.
 
 Intended audience: graduate students, independent researchers, and junior labs that want to enter the world-model space without spending three months reverse-engineering existing repos.
 
-## 🛠️ Installation
+## Installation
 
 ```bash
-conda create -n minwm python=3.10 -y 
+conda create -n minwm python=3.12 -y
 conda activate minwm
-pip install -r requirements.txt
+pip install -r requirements/base.txt
 pip install flash-attn --no-build-isolation
-export PYTHONPATH="$PWD/HY15:$PWD/Wan21:$PWD/shared:$PYTHONPATH"
+pip install -e .          # editable install: makes `import minwm` resolve, no PYTHONPATH
 ```
 
-<details> <summary> 🧱 Model Checkpoints (Click to expand) </summary> 
+> Full requirements, verification, developer setup, and troubleshooting:
+> see [`INSTALL.md`](INSTALL.md).
+>
+> Saving checkpoints to a remote object store (`s3://`, `oss://`, or an
+> S3-compatible store like Baidu BOS)? Install the matching fsspec backend —
+> see [Remote Checkpoint Storage](INSTALL.md#remote-checkpoint-storage-optional).
+
+<details> <summary> Model Checkpoints (Click to expand) </summary> 
 
 All weights live under `./ckpts/` after download.
 
 
 | Checkpoint                                                                | Backbone | Stage                               | Use case                               | Download                                              |
 | ------------------------------------------------------------------------- | -------- | ----------------------------------- | -------------------------------------- | ----------------------------------------------------- |
-| `Wan21/Action2V/{bidirectional,ar_diffusion_tf,causal_ode,causal_cd,dmd}` | Wan 2.1  | Same 4 stages                       | Wan pipeline                           | [HF](https://huggingface.co/MIN-Lab/minWM)            |
 | `HunyuanVideo-1.5` (base)                                                 | HY 1.5   | —                                   | Required by both HY pipelines          | [HF](https://huggingface.co/tencent/HunyuanVideo-1.5) |
-| `Wan2.1-T2V-1.3B` (base)                                                  | Wan 2.1  | —                                   | Required by Wan pipeline               | [HF](https://huggingface.co/Wan-AI/Wan2.1-T2V-1.3B)   |
 | `HY15/Action2V/bidirectional`                                             | HY 1.5   | Phase 1 SFT                         | Starting point for HY Action2V Phase 2 | [HF](https://huggingface.co/MIN-Lab/minWM)            |
 | `HY15/Action2V/ar_diffusion_tf`                                           | HY 1.5   | Phase 2 Stage 1                     | Teacher Forcing AR diffusion           | [HF](https://huggingface.co/MIN-Lab/minWM)            |
 | `HY15/Action2V/causal_ode`                                                | HY 1.5   | Phase 2 Stage 2a (proposed in Causal Forcing)   | DMD initialization               | [HF](https://huggingface.co/MIN-Lab/minWM)            |
 | `HY15/Action2V/causal_cd`                                                 | HY 1.5   | Phase 2 Stage 2b (proposed in Causal Forcing++) | DMD initialization               | [HF](https://huggingface.co/MIN-Lab/minWM)            |
 | `HY15/Action2V/dmd`                                                       | HY 1.5   | Phase 2 Stage 3                     | **4-step real-time inference**         | [HF](https://huggingface.co/MIN-Lab/minWM)            |
-| `HY15/TI2V/{bidirectional,ar_diffusion_tf,causal_ode,causal_cd,dmd}`      | HY 1.5   | Same 4 stages, TI2V variant         | TI2V pipeline                          | [HF](https://huggingface.co/MIN-Lab/minWM)            |
+| `Wan21/Action2V/{bidirectional,ar_diffusion_tf,causal_ode,causal_cd,dmd}` | Wan 2.1  | Same 4 stages                       | Wan pipeline                           | [HF](https://huggingface.co/MIN-Lab/minWM)            |
+| `Wan2.1-T2V-1.3B` (base)                                                  | Wan 2.1  | —                                   | Required by Wan pipeline               | [HF](https://huggingface.co/Wan-AI/Wan2.1-T2V-1.3B)   |
 
 </details>
 
-## 🚀 Quick Start
-
-> The fastest path: install → download three DMD checkpoints → run three demo commands. Full reproduction (all 4 training stages × 3 model lines) is in [§ Data & Training & Reproduction](#️-data--training--reproduction).
+## Inference
 
 ### 1. Download the demo checkpoints
 
@@ -157,9 +122,10 @@ All weights live under `./ckpts/` after download.
 # Wan base (T2V-1.3B)
 hf download Wan-AI/Wan2.1-T2V-1.3B --local-dir ./ckpts/Wan2.1-T2V-1.3B 
 
-# Code hardcodes the load path; create a symlink.
-mkdir -p Wan21/wan_models
-ln -s "$(realpath ./ckpts/Wan2.1-T2V-1.3B)" Wan21/wan_models/Wan2.1-T2V-1.3B
+# The ODE data-curation tool loads the base from `wan_models/` relative to the repo
+# root, so mirror it there too (inference itself reads ./ckpts/Wan2.1-T2V-1.3B).
+mkdir -p wan_models
+ln -s "$(realpath ./ckpts/Wan2.1-T2V-1.3B)" wan_models/Wan2.1-T2V-1.3B
 
 
 # HY base + text/vision encoders (required by HY pipelines)
@@ -182,49 +148,169 @@ hf download MIN-Lab/minWM --local-dir ./ckpts \
 hf download MIN-Lab/minWM --local-dir ./ckpts \
     --include "HY15/Action2V/dmd/*"
 
-# HY Action2V (DMD, 4-step, our bidirectional teacher) 
-# hf download MIN-Lab/minWM --local-dir ./ckpts \
-#     --include "HY15/Action2V/dmd_ourbi/*"
-
-## HY TI2V (DMD, 4-step)
-hf download MIN-Lab/minWM --local-dir ./ckpts \
-    --include "HY15/TI2V/dmd/*"
+# The HF repo publishes stage weights under release names (`dmd`, `causal_cd`, …)
+# while the configs load the `stage{N}_*` names. Link them so the configs resolve
+# with no extra flags (relative + idempotent; safe to re-run).
+ln -sfnT dmd ./ckpts/Wan21/Action2V/stage3_ar_dmd
+ln -sfnT dmd ./ckpts/HY15/Action2V/stage3_ar_dmd
 ```
 
+<details> <summary> Checkpoint naming: release names → config names (Click to expand) </summary>
 
-### 2. Run the three demos
+The two naming schemes differ, so each downloaded stage needs one directory-level
+symlink. The links are relative (so `./ckpts/` stays movable) and re-running is a
+no-op. Wan configs load `<stage>/model.pt`; HY configs load `<stage>/` as a
+diffusers directory — a single link per stage satisfies both.
+
+Keep the `-T`: without it, if the `stage{N}_*` path already exists as a **real**
+directory (e.g. you exported your own checkpoint there), `ln` would quietly create
+a nested link *inside* it and the config would keep loading the old weights. With
+`-T` you get a loud `cannot overwrite directory` instead, and nothing is touched.
+
+| Release name (on HF) | Config name (symlink) | Stage |
+| --- | --- | --- |
+| `bidirectional` | `stage0_bi_sft` | Phase 1 bidirectional SFT |
+| `ar_diffusion_tf` | `stage1_ar_tf` | Phase 2 Stage 1 teacher forcing |
+| `causal_ode` | `stage2_ar_ode` | Phase 2 Stage 2(a) ODE distillation |
+| `causal_cd` | `stage2_ar_cd` | Phase 2 Stage 2(b) consistency distillation |
+| `dmd` | `stage3_ar_dmd` | Phase 2 Stage 3 DMD (4-step) |
+
+To link every stage you downloaded, for either model line:
+
+```bash
+for line in Wan21/Action2V HY15/Action2V; do
+  ( cd ./ckpts/$line 2>/dev/null || exit 0
+    ln -sfnT bidirectional    stage0_bi_sft
+    ln -sfnT ar_diffusion_tf  stage1_ar_tf
+    ln -sfnT causal_ode       stage2_ar_ode
+    ln -sfnT causal_cd        stage2_ar_cd
+    ln -sfnT dmd              stage3_ar_dmd ) 
+done
+```
+
+Dangling links for stages you did not download are harmless — nothing reads them.
+Alternatively, skip the links entirely and pass the release path explicitly:
+`inference.checkpoint=./ckpts/Wan21/Action2V/dmd/model.pt`.
+
+</details>
+
+
+### 2. Run the demos
+
+All inference goes through one entrypoint — **`tools/infer_mwm.py`** — and the loop,
+sampler, guidance and step count come from the `--config-file`, not from CLI flags. So
+switching model line or stage means switching the config; the command shape never changes.
+
+The input is a benchmark JSON named by the config key `inference.benchmark`: a list of
+`[{id, caption, trajectory}]` items (extra keys ignored), each output named `{id}.mp4`. An
+`image` field makes the item image-to-video (HY); omitting it makes it text-to-video (Wan).
 
 ```bash
 # 2.1  Wan Action2V (4-step DMD, camera control)
-OUTPUT_FOLDER=./outputs/quickstart_wan_action2v \
-TRAJECTORY_PATH="Wan21/prompts/trajectories.txt" \
-    bash Wan21/scripts/inference/run_infer_causal_camera.sh
+torchrun --nproc_per_node=1 tools/infer_mwm.py \
+    --config-file configs/wan21/action2v/infer/stage3_ar_dmd.py \
+    inference.benchmark=assets/example_t2v.json inference.limit=2 \
+    inference.output_dir=./outputs/quickstart_wan_action2v
 
 # 2.2  HY Action2V (4-step DMD, camera control)
-TRANSFORMER_DIR=./ckpts/HY15/Action2V/dmd \
-OUTPUT_DIR=./outputs/quickstart_hy_action2v \
-    bash HY15/scripts/inference/run_infer_causal_camera.sh
-
-# 2.3  HY TI2V (4-step DMD)
-TRANSFORMER_DIR=./ckpts/HY15/TI2V/dmd \
-OUTPUT_DIR=./outputs/quickstart_hy_ti2v \
-    bash HY15/scripts/inference/run_infer_causal.sh
-
+torchrun --nproc_per_node=1 tools/infer_mwm.py \
+    --config-file configs/hy/action2v/infer/stage3_ar_dmd.py \
+    inference.benchmark=assets/example.json inference.limit=2 \
+    inference.strict=False \
+    inference.output_dir=./outputs/quickstart_hy_action2v
 ```
 
-> **Camera control.** For HY Action2V, trajectories are read per-sample from `assets/example.json` under the `"trajectory"` field. Format: `w/s/a/d` keys with `*N` repeats; comma-separated segments — e.g. `"a*4,w*8,s*7"`.
+Each run writes one `.mp4` per sample (Wan Action2V: 832×480, 77 frames @ 16 fps) plus a
+**`manifest.json`** recording the config and the per-item `{prompt, trajectory, seed, video}`.
 
-## ⚙️ Data & Training & Reproduction
+Every config value is overridable inline as a dotlist `key=value`: `inference.checkpoint=` /
+`inference.output_dir=` override the config's values, `inference.limit=N` runs only the first
+N items, `inference.seed=`, and `inference.sp_size=N` (with a matching `--nproc_per_node=N`)
+for sequence-parallel sampling.
 
-Three model lines × two phases × four stages, each documented as **(1) Model download → (2) Data preparation → (3) Training script → (4) Validation**. Full reproduction guides are split by backbone:
+> **Camera trajectories.** Format is `key*N` segments joined by commas — e.g. `d*8,i*5,l*6`
+> = pan right 8, tilt up 5, pan left 6. `w/s/a/d` translate, `i/k/j/l` rotate. For 20 latent
+> frames the segment counts sum to 19. The trajectory is per-sample, read from each benchmark
+> item's `"trajectory"` field.
 
-- 📗 [`training_wan.md`](training_wan.md)
-    -  **Wan Action2V**  (Wan 2.1 backbone)
-- 📘 [`training_hunyuan.md`](training_hunyuan.md)
-    — **HY Action2V** (HY1.5-8B backbone)
-    - **HY TI2V** (HY1.5-8B backbone)
+### 3. Optional: overlay the key indicator
 
-## 📚 Citation
+Renders the WASD/KIJL key presses onto each clip and concatenates them into one overview.
+It reads `manifest.json`, so it works on any output directory produced above:
+
+```bash
+python demos/overlay_from_manifest.py \
+    --input-dir ./outputs/quickstart_wan_action2v \
+    --output final_with_keys.mp4
+```
+
+> Needs `ffmpeg` / `ffprobe` on `PATH`. Cluster images often ship without them — run this
+> step locally on the (shared-filesystem) output directory instead.
+
+## Data & Training & Reproduction
+
+### 1. Data preparation
+
+Before starting any training stage, prepare the raw videos and camera trajectories. Choose one option; both produce the same `./dataset/` layout.
+
+#### Option A: Download minWM Dataset
+
+The videos are generated with HunyuanVideo (HY-WorldPlay); their use is subject to the upstream model's license terms.
+
+```bash
+hf download MIN-Lab/minWM-data --repo-type dataset \
+    --local-dir ./dataset \
+    --include "preencode_input.json" "videos/**"
+```
+
+The resulting layout is:
+
+```text
+./dataset/
+├── preencode_input.json
+└── videos/
+    ├── 000000_right8a11/gen.mp4
+    ├── 000001_w10d9/gen.mp4
+    └── ...
+```
+
+For HY Action2V, download the CFG negative prompt embeddings separately:
+
+```bash
+hf download MIN-Lab/minWM-data --repo-type dataset \
+    --local-dir ./dataset \
+    --include "others/HY/Action2V/**"
+```
+
+#### Option B: Use Your Own Videos and Trajectories
+
+Match Option A's layout by providing your own `preencode_input.json` and `videos/` directory. The JSON file must be a list, and each entry must contain at least `image_path`, `caption`, and `pose_str`:
+
+```json
+[
+    {
+        "image_path": "/abs/path/to/image1.png",
+        "caption": "A scenic mountain view",
+        "pose_str": "right-8, a-11"
+    }
+]
+```
+
+Each video must be stored at `videos/{i:06d}_{slug(pose_str)}/gen.mp4`, where `i` is the entry's index in the JSON list and `slug` is `pose_str` lowercased with non-alphanumeric characters removed.
+
+### 2. Training and Reproduction Guides
+
+The Wan 2.1 and HunyuanVideo 1.5 pipelines follow the same four-part workflow:
+**(1) Setup → (2) Data encoding → (3) Training → (4) Inference**.
+
+The complete guides are split by backbone:
+
+- [`configs/wan21/`](configs/wan21/README.md) — Wan 2.1 backbone
+    - [`configs/wan21/action2v/`](configs/wan21/action2v/README.md) — **Wan Action2V**
+- [`configs/hy/`](configs/hy/README.md) — HY1.5-8B backbone
+    - [`configs/hy/action2v/`](configs/hy/action2v/README.md) — **HY Action2V**
+
+## Citation
 
 If minWM helps your research, please cite:
 
@@ -256,10 +342,34 @@ If minWM helps your research, please cite:
 
 ```
 
+## License
+
+minWM's own framework code is released under the [Apache License 2.0](LICENSE).
+The repository also contains components under other licenses; those terms govern
+the corresponding files. See [NOTICE](NOTICE) and
+[THIRD_PARTY_LICENSES.md](THIRD_PARTY_LICENSES.md) for full attribution, and
+[`licenses/`](licenses/) for the license texts.
+
+| Component | Location | License |
+|---|---|---|
+| minWM framework (engine, config, data, sampling) | `minwm/` (except modeling backbones below) | Apache-2.0 |
+| Wan 2.1 backbone | `minwm/modeling/wan21/` | Apache-2.0 |
+| vLLM-derived sequence parallelism | `minwm/distributed/sp/` | Apache-2.0 |
+| HunyuanVideo 1.5 backbone | `minwm/modeling/hy15/` | Tencent Hunyuan Community License (THCL) |
+
+> **HunyuanVideo 1.5 components and any derived weights** (fine-tuned, distilled,
+> DMD-student) are licensed under the [Tencent Hunyuan Community License](licenses/TENCENT_HUNYUAN_COMMUNITY_LICENSE.txt),
+> **not** Apache-2.0. The THCL is not an OSI-approved open-source license: its
+> grant is limited to the **Territory** — worldwide **excluding the European
+> Union, the United Kingdom, and South Korea** — it treats fine-tuning and
+> distillation outputs as "Model Derivatives", and it restricts using Hunyuan
+> outputs to improve other AI models. Review the agreement before using these
+> parts.
+
 ## Contact
 
 For questions, suggestions, or collaboration, please open a GitHub issue or contact: [gracezhao1997@gmail.com](mailto:gracezhao1997@gmail.com).
 
-## 🙏 Acknowledgements
+## Acknowledgements
 
 minWM stands on the shoulders of giants. We thank the authors and maintainers of [HunyuanVideo 1.5](https://github.com/Tencent-Hunyuan/HunyuanVideo-1.5), [HY-WorldPlay](https://github.com/Tencent-Hunyuan/HY-WorldPlay), [Wan 2.1](https://github.com/Wan-AI/Wan), [Causal-Forcing](https://github.com/thu-ml/Causal-Forcing), and [FastVideo](https://github.com/hao-ai-lab/FastVideo) for their open-source contributions, which made this framework possible.

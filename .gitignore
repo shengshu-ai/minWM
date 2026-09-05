@@ -131,6 +131,7 @@ dmypy.json
 
 # Model checkpoints and outputs
 outputs/
+job-logs/
 *.safetensors
 *.bin
 *.pt
@@ -165,14 +166,41 @@ logs/
 # Cache directories
 .cache/
 cache/
+ckpts
 ckpts/
 
 wandb/
 output*/
 preencoded/
-data/
-*mp4
-.safetensors
-.claude
-kb_launch.sh
-Wan21_prope_ref/
+/data/
+*.mp4
+dataset/
+
+# Additional dev tooling caches
+.ruff_cache/
+.pdm-python
+
+# Data / serialized tensors (LMDB datasets, pickles, numpy dumps)
+*.pkl
+*.npy
+*.lmdb
+*.mdb
+lmdb/
+
+# sslaunch cluster launcher local config
+.sslaunch
+
+# Legacy reference trees — untracked from git, kept locally as reference
+# until the minwm migration is fully aligned. See chore/untrack-legacy-trees.
+/HY15/
+/Wan21/
+/shared/
+wan_models
+/.codex/
+/dev/
+tmp/
+# Local private Claude memory (may contain secrets) — never commit
+CLAUDE.local.md
+# Benchmark data lives on the shared mount and is symlinked/generated locally,
+# never committed (see chore: remove benchmark data from repo, use symlink instead).
+/benchmark/

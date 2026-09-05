@@ -1,0 +1,58 @@
+stages:
+  - lint
+  - test
+
+variables:
+  PIP_CACHE_DIR: "$CI_PROJECT_DIR/.pip-cache"
+  PIP_INDEX_URL: "https://pypi.tuna.tsinghua.edu.cn/simple/"
+
+default:
+  image: python:3.12-slim
+
+lint:
+  stage: lint
+  cache:
+    key: "lint-tools-py312"
+    paths:
+      - .pip-cache/
+  before_script:
+    - pip install "black==26.5.1" "isort==8.0.1" "flake8==7.3.0" -q
+  script:
+    - black --check minwm tests
+    - isort --check-only minwm tests
+    - flake8 minwm tests
+  rules:
+    - changes:
+        - "minwm/**"
+        - "tests/**"
+        - "pyproject.toml"
+        - ".flake8"
+        - ".gitlab-ci.yml"
+    - when: never
+
+test:
+  stage: test
+  cache:
+    key: "torch-cpu-py312-2.6.0"
+    when: always
+    paths:
+      - .pip-cache/
+  before_script:
+    # CPU-only torch via aliyun find-links mirror (China-local, ~5× faster than
+    # the US pytorch CDN). The +cpu local-version wheel only exists on this
+    # mirror; torch's pure-python deps still resolve from the tuna index above.
+    # Tests use basic tensor/nn APIs only — no CUDA wheels needed.
+    - pip install "torch==2.6.0+cpu"
+        --find-links https://mirrors.aliyun.com/pytorch-wheels/cpu/ -q
+    - pip install "numpy>=1.26" "termcolor==3.3.0" "omegaconf==2.3.0" "pytest>=8.0"
+        "einops==0.8.2" "diffusers==0.35.0" "scipy==1.15.3" -q
+    - pip install -e . --no-deps -q
+  script:
+    - pytest tests/ -q --tb=short
+  rules:
+    - changes:
+        - "minwm/**"
+        - "tests/**"
+        - "pyproject.toml"
+        - ".gitlab-ci.yml"
+    - when: never

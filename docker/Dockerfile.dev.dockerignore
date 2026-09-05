@@ -1,0 +1,4 @@
+# Build context is the repo root, but the image only needs requirements/ at
+# build time (the repo is mounted at runtime), so exclude everything else.
+*
+!requirements/

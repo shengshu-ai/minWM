@@ -1,0 +1,92 @@
+[
+  {
+    "id": 1,
+    "caption": "A serene garden path winds through manicured greenery, leading toward a dark building adorned with insect displays, under a soft overcast sky. A quiet, slightly overcast day at a park or garden. A brick pathway leads into the distance, flanked by manicured green bushes. To the right, a long, dark building displays framed images of butterflies or insects. The pathway appears wet, suggesting recent rain. The atmosphere is peaceful and serene, with a sense of calm and stillness. The scene evokes a sense of nature and tranquility, inviting viewers to take a leisurely stroll.",
+    "trajectory": "a*4,w*8,s*7"
+  },
+  {
+    "id": 2,
+    "caption": "A rainy urban street features tall buildings, wet pavement, and natural green and yellow foliage under a gray sky, evoking a contemplative, somber atmosphere in a modern cityscape. It is a rainy day in a modern city, with tall buildings lining a wide, wet pedestrian walkway. The rain glistens on the pavement and the road to the right. The foliage and trees have natural green and yellow hues, contrasting with the gray sky and concrete surroundings. People are walking in the distance, and cars are driving slowly through the light traffic. The atmosphere is muted and contemplative, with the rain creating a somber mood in this typically busy urban setting.",
+    "trajectory": "a*4,w*4,s*11"
+  },
+  {
+    "id": 3,
+    "caption": "A peaceful lakeside park under surreal lighting features mountains, a paved path, and quiet natural elements, evoking a dreamlike atmosphere. A tranquil lakeside park is depicted under a warm, slightly surreal light. Mountains rise in the background, overlooking the calm water. A paved path runs along the shore, lined with trees and a metal railing. A person stands near a tree, and a bench sits empty. A small fence and a sign are visible near the edge of the park. The scene evokes a sense of peace and quiet, with a slightly dreamlike quality due to the unusual lighting.",
+    "trajectory": "d*8,s*4,a*7"
+  },
+  {
+    "id": 4,
+    "caption": "Matte painting of a bustling jungle city under a vibrant sunset. The cityscape is filled with towering skyscrapers intertwined with lush greenery and vines that climb up the buildings. Trees with large leaves and colorful flowers grow from rooftops and between structures, blending nature with urban architecture seamlessly. The sky is painted with warm hues of orange and pink, casting long shadows across the streets. People and exotic creatures move about in the background, adding life to the scene. The overall atmosphere is one of harmony between nature and civilization. Wide shot, static view.",
+    "trajectory": "a*19"
+  },
+  {
+    "id": 5,
+    "caption": "A quiet, rainy urban street in South Korea features reflective red tiles, distant buildings with Korean signs, and a solitary figure under an umbrella, bathed in soft light. It is a rainy day on a quiet urban street in South Korea. The sidewalk is wet and reflects the light, with red tiles lining the edge. A person with an umbrella stands at a crosswalk in the distance. Buildings line the street, with Korean signage visible. The rain creates a soft, diffused light, giving the scene a calm atmosphere. The overall tone is peaceful despite the rain.",
+    "trajectory": "w*8,s*8,a*3"
+  },
+  {
+    "id": 6,
+    "caption": "Nordic landscape with dense fog covering a forest of tall pine trees. Early morning sunlight pierces through the mist, casting golden rays that illuminate the dew-covered branches and leaves. The ground is covered in a carpet of soft moss and fallen pine needles. The air is crisp and cool, with a gentle breeze causing the mist to swirl and dance between the trees. The scene is serene and tranquil, with a soft, ethereal glow. Wide shot, static view.",
+    "trajectory": "j*19"
+  },
+  {
+    "id": 7,
+    "caption": "Oil painting style, a classroom filled with students engaged in a mathematics lesson, where the sound of music can be heard softly in the background. The teacher, standing at the blackboard, writes complex equations while a student plays a violin near the window. The room is warm and inviting, with sunlight streaming in through the blinds. Students are focused on their work, some nodding along to the music. The walls are adorned with posters of mathematical concepts and musical notes. The scene captures a harmonious blend of mathematics and music, creating a serene atmosphere. Medium shot, static view.",
+    "trajectory": "d*8,w*8,s*3"
+  },
+  {
+    "id": 8,
+    "caption": "Retro Simon Stalenhag-style illustration of a grand cathedral submerged underwater. The cathedral, with intricate gothic architecture, is partially obscured by seaweed and coral growth. Sunlight filters through the water, creating a dreamlike atmosphere with soft, ethereal lighting. Fish and other marine life swim around the structure, adding to the eerie yet beautiful scene. The illustration captures a sense of nostalgia and wonder, blending the familiar with the fantastical. Wide shot, static scene.",
+    "trajectory": "s*4,a*15"
+  },
+  {
+    "id": 9,
+    "caption": "Show Luca, the small adventurous wolf, standing at the edge of a dense forest, ready for new discoveries. Luca has a sleek gray coat, bright amber eyes, and a bushy tail that flicks excitedly. He wears a tiny backpack, filled with essential supplies for his adventures. His posture is alert, with ears perked up and nose twitching as he takes in the scent of the forest. The forest behind him is lush and green, with tall trees and dappled sunlight filtering through the leaves. The scene captures Luca’s adventurous spirit and his readiness to explore the unknown. Medium close-up shot focusing on Luca’s determined expression.",
+    "trajectory": "a*12,s*7"
+  },
+  {
+    "id": 10,
+    "caption": "Slow-motion footage of butterflies fluttering gracefully through a lush garden filled with vibrant flowers. Each butterfly has iridescent wings with intricate patterns, reflecting sunlight as they move. The butterflies fly slowly, occasionally pausing to rest on a flower petal or a leaf. The background showcases a variety of blooming flowers and green foliage, creating a serene and peaceful atmosphere. Medium close-up shots capture the delicate movements of the butterflies.",
+    "trajectory": "s*19"
+  },
+  {
+    "id": 11,
+    "caption": "Stunning digital artwork depicting ancient Egypt, showcasing a grandiose view of the Great Sphinx and the Pyramids of Giza at sunset. The scene includes intricate details such as hieroglyphics, sand dunes, and a clear blue sky transitioning into vibrant orange hues. The foreground features a lone figure in traditional ancient Egyptian attire, standing in reverence. The overall composition highlights the majesty and historical significance of the location. Static shot, medium-long distance view.",
+    "trajectory": "s*8,a*11"
+  },
+  {
+    "id": 12,
+    "caption": "3D animation, Elon Musk, dressed in a sleek silver spacesuit with a helmet, is joyfully dancing on the moon's surface. He moves gracefully, arms waving and legs kicking in the low-gravity environment. His facial expression is filled with excitement and amusement. The moon's rocky terrain and craters surround him, illuminated by the soft glow of the Earth in the distance. The background shows the vastness of space with stars twinkling faintly. Close-up view focusing on Elon's dance movements.",
+    "trajectory": "a*8,s*11"
+  },
+  {
+    "id": 13,
+    "caption": "A serene mountain village road is framed by wooden houses and snow-dusted terrain, under a clear blue sky that suggests a peaceful atmosphere. The scene depicts a quiet village road in a mountainous region, likely during winter. Snow patches line the sides of the road, and traditional houses with wooden architecture are visible. The sky is a clear blue, typical of a bright day. The mountains in the background are partially obscured by mist or low clouds. The overall atmosphere is serene and peaceful, creating a calm and inviting mood. A few parked cars are visible along the road.",
+    "trajectory": "d*8,w*4,a*7"
+  },
+  {
+    "id": 14,
+    "caption": "Two professional office workers from JPMorgan Chase are engaged in a conversation, each holding a steaming cup of coffee. They are both dressed in business attire, with the man wearing a navy blue suit and the woman in a classic black pencil skirt and blouse. They maintain a friendly yet focused expression, gesturing as they speak. The scene takes place in a modern, well-lit office with large windows and minimalistic decor. The background includes cubicles and a few colleagues working quietly at their desks. Medium shot capturing the interaction between the two individuals.",
+    "trajectory": "j*19"
+  },
+  {
+    "id": 15,
+    "caption": "A heartfelt and inspiring video showcasing Leo, a successful individual standing confidently in a modern cityscape. He is dressed in a smart business suit, looking reflective yet determined. Behind him, there are signs of his humble origins, such as old brick buildings and graffiti-covered walls, juxtaposed against skyscrapers and bustling streets. Leo reaches out towards a group of people in need, symbolizing his commitment to helping others. His expression conveys empathy and strength. The background includes diverse individuals representing various races and ages, all looking up to him with hopeful expressions. The scene transitions from a wide shot of the city to a close-up of Leo’s face, emphasizing his dedication and impact. The overall tone is uplifting and motivational.",
+    "trajectory": "w*8,a*11"
+  },
+  {
+    "id": 16,
+    "caption": "A high-fashion supermodel standing confidently on a pristine sandy beach during sunset. She wears a sleek, form-fitting black swimsuit that accentuates her athletic build. Her long, wavy blonde hair flows gently in the breeze, and she has a radiant, serene expression. The supermodel gazes out towards the horizon where the sky is painted with hues of orange and pink. Palm trees sway softly in the background, casting long shadows as the sun sets behind them. The scene captures a wide-angle view of the beach, emphasizing the vastness of the ocean and the serene atmosphere.",
+    "trajectory": "a*12,s*7"
+  },
+  {
+    "id": 17,
+    "caption": "Ultra-realistic 8K video in a wide shot format, showcasing a camel in a zoo located in Dubai during an extremely hot summer day. The sun is bright and shining overhead, casting sharp shadows on the sandy ground. The camel stands calmly, occasionally swaying its head and flicking its ears to cool down. The zoo environment includes palm trees and modern enclosures, with visitors in the background observing from shaded areas. The camel's fur appears dusty and tousled due to the heat, and its large eyes convey a sense of calm amidst the bustling surroundings.",
+    "trajectory": "w*8,a*11"
+  },
+  {
+    "id": 18,
+    "caption": "In Heaven Cinematic 4K, a serene and ethereal landscape unfolds with lush green fields stretching into the distance, dotted with blooming wildflowers. Soft, golden sunlight filters through wispy clouds, casting gentle shadows. In the foreground, a tranquil river meanders gently, reflecting the vibrant hues of the sky. A flock of white doves flies gracefully across the sky, their wings glinting in the sunlight. The scene is bathed in a warm, heavenly glow, with a soft focus that adds to the dreamlike quality. Wide shot, static.",
+    "trajectory": "d*12,a*7"
+  }
+]

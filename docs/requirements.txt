@@ -1,0 +1,13 @@
+# Doc-build dependencies (MkDocs + Material + mkdocstrings).
+#
+# Pinned exactly, matching the repo convention (see .github/workflows/ci.yml,
+# which pins black/isort/flake8/torch). These are pure-Python: the docs build
+# uses griffe's STATIC analysis and never imports minwm, so no torch / no
+# `pip install -e .` is needed here. Captured at 2026-06-18 on py3.12.
+mkdocs-material==9.7.6
+mkdocstrings[python]==1.0.4
+pymdown-extensions==10.21.3
+
+# Transitive deps of mkdocstrings[python], pinned for a reproducible API render.
+mkdocstrings-python==2.0.4
+griffe==2.0.2

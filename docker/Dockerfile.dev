@@ -1,0 +1,28 @@
+# minWM-engine dev image: the runtime image + lint/test tooling.
+#
+# Layers requirements/dev.txt (black, isort, flake8, pytest — dev.txt itself
+# pulls in base.txt, already satisfied by the base image) on top of the runtime
+# image so tests and linting run in-pod. Like the runtime image, the minwm
+# package is NOT installed here; mount the repo at /workspace (PYTHONPATH is
+# inherited from the base image).
+#
+# Build from the repo root, after the runtime image exists locally:
+#   docker build -f docker/Dockerfile     -t minwm-engine:cu130     .
+#   docker build -f docker/Dockerfile.dev -t minwm-engine:cu130-dev .
+#
+# Point at a different base with --build-arg BASE_IMAGE=<tag>.
+
+ARG BASE_IMAGE=minwm-engine:cu130
+FROM ${BASE_IMAGE}
+
+# Extra interactive dev tools (the base image already ships zsh + vim and the
+# venv PATH setup for login/zsh shells).
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        tmux htop \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY requirements/ /tmp/requirements/
+RUN pip install -r /tmp/requirements/dev.txt \
+    && rm -rf /tmp/requirements
+
+CMD ["/bin/bash"]

@@ -1,0 +1,35 @@
+# Adapted from detectron2's .flake8.
+# Kept in sync with pyproject.toml (black/isort line-length = 100).
+#
+# NOTE: legacy trees (HY15/, Wan21/, shared/) are excluded while the
+# minwm/ framework refactor is in progress. Drop them from `exclude`
+# as each subtree is migrated and cleaned up.
+
+[flake8]
+# E704: black formats type-stub bodies as `def f(): ...` on one line.
+ignore = W503, E203, E221, C901, C408, E741, C407, B017, F811, C101, EXE001, EXE002, E704
+max-line-length = 100
+max-complexity = 18
+select = B,C,E,F,W,T4,B9
+exclude =
+    build,
+    .git,
+    __pycache__,
+    HY15,
+    Wan21,
+    shared,
+    demos,
+    assets
+per-file-ignores =
+    **/__init__.py:F401,F403,E402
+    **/configs/**.py:F401,E402
+    tests/**.py:F401,E402
+    # Data tools: sys.path.insert for local imports
+    tools/data/**/get_causal_ode_data_prope.py:E402
+    # Vendored upstream code (vLLM SP infra, Keller Jordan's Muon): keep
+    # verbatim — long attribution URLs and `import *` re-exports.
+    minwm/distributed/sp/**.py:E501,F401,F403,F405
+    minwm/engine/optim/muon.py:E501,F401,E711
+    # Vendored Wan2.1 umt5 text encoder + tokenizer: kept verbatim.
+    minwm/modeling/wan21/t5.py:E501,W504,F401
+    minwm/modeling/wan21/tokenizers.py:E501,W504

@@ -10,6 +10,10 @@ Two parts:
 - **Foundations** — minimum background needed to read minWM's training code
 - **Pitfalls** — non-obvious mistakes from hands-on experience
 
+> Note: the `HY15/`, `Wan21/`, `shared/` reference trees are no longer tracked in
+> git (kept locally as reference). Paths below resolve in a local checkout that
+> still has them; after a fresh clone, restore via `git checkout <sha> -- <tree>`.
+
 ---
 
 ## Part 1: Foundations

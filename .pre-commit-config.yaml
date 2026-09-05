@@ -1,0 +1,57 @@
+# Pre-commit hooks for the minwm framework refactor.
+#
+# Hooks run the lint tools from the active environment (language: system),
+# so behavior matches local dev / CI exactly. Install the tools with:
+#     pip install black isort flake8 pre-commit
+# then enable with:
+#     pre-commit install
+#
+# Scope: only minwm/ and tests/ are linted while the HY15/, Wan21/ and
+# shared/ legacy trees are migrated. black/isort read pyproject.toml and
+# flake8 reads .flake8 for their own config.
+
+default_language_version:
+  python: python3
+
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      # File-modifying hooks: scoped to the new framework only, so they
+      # never touch legacy trees or root-level docs (README, training_*.md).
+      - id: trailing-whitespace
+        files: ^(minwm|tests)/.*\.py$
+      - id: end-of-file-fixer
+        files: ^(minwm|tests)/.*\.py$
+      - id: debug-statements
+        files: ^(minwm|tests)/.*\.py$
+      # Read-only checks: safe to run repo-wide.
+      - id: check-yaml
+        exclude: ^mkdocs\.yml$
+      - id: check-toml
+      - id: check-added-large-files
+        args: ["--maxkb=1024"]
+      - id: check-merge-conflict
+
+  - repo: local
+    hooks:
+      - id: isort
+        name: isort (minwm, tests)
+        entry: isort
+        language: system
+        types: [python]
+        files: ^(minwm|tests)/.*\.py$
+
+      - id: black
+        name: black (minwm, tests)
+        entry: black
+        language: system
+        types: [python]
+        files: ^(minwm|tests)/.*\.py$
+
+      - id: flake8
+        name: flake8 (minwm, tests)
+        entry: flake8
+        language: system
+        types: [python]
+        files: ^(minwm|tests)/.*\.py$

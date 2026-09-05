@@ -1,0 +1,16 @@
+# Developer environment: full training stack + lint/test tooling.
+#
+#   pip install -r requirements/dev.txt
+#
+# Versions below are pinned to match CI (.github/workflows/ci.yml,
+# .gitlab-ci.yml). Keep them in sync when bumping the CI jobs.
+
+-r base.txt
+
+# Lint (black is the source of truth for formatting; run it first)
+black==26.5.1
+isort==8.0.1
+flake8==7.3.0
+
+# Test
+pytest>=8.0

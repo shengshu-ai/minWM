@@ -1,0 +1,61 @@
+# Packaging + tooling config for the minwm framework.
+#
+# minwm is installed editable (`pip install -e .`) so `import minwm` resolves
+# without PYTHONPATH. Only the minwm package is installed — the legacy trees
+# (HY15/, Wan21/, shared/) are NOT packaged; their run-scripts self-set
+# PYTHONPATH. Runtime deps stay pinned in requirements/ (not declared here), so
+# install is two steps: `pip install -r requirements/base.txt` then `pip install -e .`.
+
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "minwm"
+description = "detectron2-style training framework for video world models"
+readme = "README.md"
+requires-python = ">=3.10"
+license = "Apache-2.0"
+authors = [{ name = "minWM Team, ShengShu", email = "gracezhao1997@gmail.com" }]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
+dynamic = ["version"]
+
+[project.urls]
+Homepage = "https://github.com/shengshu-ai/minWM"
+Repository = "https://github.com/shengshu-ai/minWM"
+"Technical Report" = "https://arxiv.org/abs/2605.30263"
+
+[tool.setuptools.dynamic]
+version = { attr = "minwm.__version__" }
+
+[tool.setuptools.packages.find]
+include = ["minwm*"]
+
+# Black + isort are scoped to minwm/ and tests/; legacy trees
+# (HY15/, Wan21/, shared/) are excluded until migrated.
+
+[tool.black]
+line-length = 100
+target-version = ["py310"]
+include = '^/(minwm|tests)/.*\.pyi?$'
+extend-exclude = '''
+/(
+    HY15
+  | Wan21
+  | shared
+  | demos
+  | assets
+)/
+'''
+
+[tool.isort]
+profile = "black"
+line_length = 100
+multi_line_output = 3
+include_trailing_comma = true
+known_first_party = ["minwm"]
+skip_glob = ["HY15/*", "Wan21/*", "shared/*", "demos/*", "*/__init__.py"]

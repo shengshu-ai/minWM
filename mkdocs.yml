@@ -1,0 +1,79 @@
+site_name: minWM
+site_description: detectron2-style training framework for video world models
+site_author: MIN-Lab
+repo_url: https://github.com/shengshu-ai/minWM
+repo_name: shengshu-ai/minWM
+
+theme:
+  name: material
+  language: en
+  palette:
+    - scheme: default
+      primary: deep-orange
+      accent: deep-orange
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    - scheme: slate
+      primary: deep-orange
+      accent: deep-orange
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+  features:
+    - navigation.tabs
+    - navigation.sections
+    - navigation.indexes
+    - navigation.top
+    - search.suggest
+    - content.code.copy
+    - content.code.annotate
+
+plugins:
+  - search
+  - mkdocstrings:
+      default_handler: python
+      handlers:
+        python:
+          options:
+            docstring_style: google
+            show_source: true
+            show_root_heading: true
+            show_if_no_docstring: false
+            members_order: source
+            separate_signature: true
+            show_signature_annotations: true
+            merge_init_into_class: true
+            filters: ["!^_"]
+
+markdown_extensions:
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+  - admonition
+  - pymdownx.details
+  - tables
+  - toc:
+      permalink: true
+
+nav:
+  - Home: index.md
+  - Getting Started: getting-started.md
+  - Architecture: architecture.md
+  - Auto Dump & Sample: auto-pipeline.md
+  - API Reference:
+    - api/index.md
+    - config: api/config.md
+    - data: api/data.md
+    - distributed: api/distributed.md
+    - engine: api/engine.md
+    - modeling: api/modeling.md
+    - processors: api/processors.md
+    - recipes: api/recipes.md
+    - sampling: api/sampling.md
+    - optim: api/optim.md
+    - utils: api/utils.md

@@ -1,0 +1,36 @@
+minWM
+Copyright 2026 minWM Team, ShengShu
+
+This product includes software developed by the minWM Team, ShengShu,
+licensed under the Apache License, Version 2.0 (see LICENSE).
+
+------------------------------------------------------------------------
+Third-party components
+------------------------------------------------------------------------
+
+This product contains and derives from third-party works. See
+THIRD_PARTY_LICENSES.md for the complete attribution and license list and
+the licenses/ directory for the full license texts. The principal
+components are:
+
+- Model code under minwm/modeling/hy15/ is derived from Tencent
+  HunyuanVideo 1.5 and is licensed under the Tencent Hunyuan Community
+  License Agreement (licenses/TENCENT_HUNYUAN_COMMUNITY_LICENSE.txt), not
+  under Apache-2.0.
+
+  Tencent Hunyuan is licensed under the Tencent Hunyuan Community License
+  Agreement, Copyright © 2025 Tencent. All Rights Reserved. The trademark
+  rights of "Tencent Hunyuan" are owned by Tencent or its affiliate.
+
+  Use of these components and their derivatives (including fine-tuned,
+  distilled, and DMD-student weights) is limited to the Territory —
+  worldwide excluding the European Union, the United Kingdom, and South
+  Korea — and is subject to the use restrictions in the agreement.
+
+- Model code under minwm/modeling/wan21/ is derived from Wan 2.1,
+  licensed under the Apache License, Version 2.0.
+
+- Sequence-parallel / distributed code under minwm/distributed/sp/ is
+  adapted from vLLM (Apache License, Version 2.0), which in turn adapts
+  portions of NVIDIA Megatron-LM; per-file SPDX and copyright headers are
+  retained in those files.
