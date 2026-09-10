@@ -111,6 +111,7 @@ All weights live under `./ckpts/` after download.
 | `HY15/Action2V/causal_cd`                                                 | HY 1.5   | Phase 2 Stage 2b (proposed in Causal Forcing++) | DMD initialization               | [HF](https://huggingface.co/MIN-Lab/minWM)            |
 | `HY15/Action2V/dmd`                                                       | HY 1.5   | Phase 2 Stage 3                     | **4-step real-time inference**         | [HF](https://huggingface.co/MIN-Lab/minWM)            |
 | `Wan21/Action2V/{bidirectional,ar_diffusion_tf,causal_ode,causal_cd,dmd}` | Wan 2.1  | Same 4 stages                       | Wan pipeline                           | [HF](https://huggingface.co/MIN-Lab/minWM)            |
+| `Wan21/Action2V/bidirectional/model_v2.pt`                                | Wan 2.1  | Phase 1 SFT (v2, retrained data)    | Improved Wan Action2V bidirectional    | [HF](https://huggingface.co/MIN-Lab/minWM/tree/main/Wan21/Action2V/bidirectional/model_v2.pt) |
 | `Wan2.1-T2V-1.3B` (base)                                                  | Wan 2.1  | —                                   | Required by Wan pipeline               | [HF](https://huggingface.co/Wan-AI/Wan2.1-T2V-1.3B)   |
 
 </details>
