@@ -227,19 +227,34 @@ class BaseTrainer:
         return self._maybe_shard(model)
 
     @staticmethod
-    def _enable_native_activation_checkpointing(model: nn.Module) -> None:
+    def _enable_native_activation_checkpointing(model: nn.Module, policy: str = "full") -> None:
         """Turn on backbone-native activation checkpointing for a non-FSDP model.
 
         Prefers diffusers' ``gradient_checkpointing_enable()``; falls back to the
-        conventional ``gradient_checkpointing`` model flag.
+        conventional ``gradient_checkpointing`` model flag. A non-default policy is
+        installed through the model's ``checkpoint_context_fn``.
 
         Args:
             model (nn.Module): the freshly built model to configure in place.
+            policy (str): ``training.activation_checkpointing_policy``.
+
+        Raises:
+            ValueError: if ``policy`` is not ``"full"`` and the model's checkpointing
+                cannot take a ``context_fn``.
         """
         if hasattr(model, "gradient_checkpointing_enable"):
             model.gradient_checkpointing_enable()
         elif hasattr(model, "gradient_checkpointing"):
             model.gradient_checkpointing = True
+        if policy != "full":
+            if not hasattr(model, "checkpoint_context_fn"):
+                raise ValueError(
+                    f"{type(model).__name__} does not support "
+                    f"training.activation_checkpointing_policy={policy!r} without FSDP"
+                )
+            from minwm.distributed.activation_checkpoint import checkpoint_context_fn
+
+            model.checkpoint_context_fn = checkpoint_context_fn(policy)
 
     def _should_fsdp(self) -> bool:
         """True iff FSDP2 sharding should be applied this run.
@@ -293,13 +308,14 @@ class BaseTrainer:
         training = self.cfg.training
         activation_checkpointing = training.activation_checkpointing and activation_memory
         activation_offload = training.activation_offload and activation_memory
+        policy = training.activation_checkpointing_policy
         if not shard or not self._should_fsdp():
             if activation_checkpointing:
-                self._enable_native_activation_checkpointing(module)
+                self._enable_native_activation_checkpointing(module, policy)
             return module
         if not getattr(module, "_fsdp_shard_conditions", None):
             if activation_checkpointing:
-                self._enable_native_activation_checkpointing(module)
+                self._enable_native_activation_checkpointing(module, policy)
             logger.warning(
                 "%s defines no '_fsdp_shard_conditions'; leaving it unsharded.",
                 type(module).__name__,
@@ -315,6 +331,7 @@ class BaseTrainer:
             reshard_after_forward=training.fsdp_reshard_after_forward,
             cpu_offload=training.fsdp_cpu_offload,
             activation_checkpointing=activation_checkpointing,
+            activation_checkpointing_policy=policy,
             activation_offload=activation_offload,
         )
         self._fsdp = True

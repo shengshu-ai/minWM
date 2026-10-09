@@ -77,6 +77,13 @@ class Training:
     The trainer selects the backbone implementation without FSDP, the FSDP-layer
     wrapper under FSDP, or the offloader-compatible wrapper when activation
     offload is also enabled."""
+    activation_checkpointing_policy: str = "full"
+    """What a checkpointed layer recomputes during backward. ``"full"`` reruns the
+    whole layer. ``"save_attention"`` keeps the outputs of long-context attention
+    (FlashAttention 2 / SDPA) and reruns the rest: backward skips the attention
+    forward at the cost of one attention output per layer, and gradients are
+    unchanged. Only read with ``activation_checkpointing``; not supported with
+    ``activation_offload``, whose wrapper uses reentrant checkpointing."""
     activation_offload: bool = False
     """Under FSDP2, asynchronously offload each transformer layer's saved
     activations to pinned CPU memory and prefetch them during backward. D2H/H2D
@@ -86,6 +93,18 @@ class Training:
     correctness. A no-op without FSDP2."""
     hsdp_shard_size: int = 0
     """HSDP shard degree; 0 shards over the full DP dimension (pure FSDP)."""
+
+    def __post_init__(self) -> None:
+        if self.activation_checkpointing_policy not in ("full", "save_attention"):
+            raise ValueError(
+                "training.activation_checkpointing_policy must be 'full' or 'save_attention', "
+                f"got {self.activation_checkpointing_policy!r}"
+            )
+        if self.activation_checkpointing_policy != "full" and self.activation_offload:
+            raise ValueError(
+                "training.activation_checkpointing_policy='save_attention' is not supported "
+                "with training.activation_offload"
+            )
 
 
 @dataclass(frozen=True)

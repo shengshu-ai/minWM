@@ -15,6 +15,7 @@ import torch.nn.functional as F
 from diffusers.configuration_utils import ConfigMixin, register_to_config
 from diffusers.models.modeling_utils import ModelMixin
 from torch.nn.attention.flex_attention import BlockMask, create_block_mask
+from torch.utils.checkpoint import noop_context_fn
 
 from minwm.distributed.collective import sp_all_gather
 from minwm.distributed.parallel_dims import get_parallel_state
@@ -181,6 +182,7 @@ class CausalWan21Model(ModelMixin, ConfigMixin):
 
         self.init_weights()
         self.gradient_checkpointing = False
+        self.checkpoint_context_fn = noop_context_fn
         self.block_mask = None
         self.num_frame_per_block = num_frame_per_block
         self.independent_first_frame = False
@@ -514,7 +516,9 @@ class CausalWan21Model(ModelMixin, ConfigMixin):
             # exit step are all retained — the dominant DMD generator-step cost that
             # pushes low-sp single-node runs OOM.
             if torch.is_grad_enabled() and self.gradient_checkpointing:
-                x = torch.utils.checkpoint.checkpoint(block, x, **kwargs, use_reentrant=False)
+                x = torch.utils.checkpoint.checkpoint(
+                    block, x, **kwargs, use_reentrant=False, context_fn=self.checkpoint_context_fn
+                )
             else:
                 x = block(x, **kwargs)
 
@@ -743,7 +747,9 @@ class CausalWan21Model(ModelMixin, ConfigMixin):
 
         for block in self.blocks:
             if torch.is_grad_enabled() and self.gradient_checkpointing:
-                x = torch.utils.checkpoint.checkpoint(block, x, **kwargs, use_reentrant=False)
+                x = torch.utils.checkpoint.checkpoint(
+                    block, x, **kwargs, use_reentrant=False, context_fn=self.checkpoint_context_fn
+                )
             else:
                 x = block(x, **kwargs)
 

@@ -73,6 +73,7 @@ def shard_model(
     cpu_offload: bool = False,
     pin_cpu_memory: bool = True,
     activation_checkpointing: bool = False,
+    activation_checkpointing_policy: str = "full",
     activation_offload: bool = False,
 ) -> nn.Module:
     """Shard ``model`` in place with FSDP2 using its ``_fsdp_shard_conditions``.
@@ -104,6 +105,9 @@ def shard_model(
             backward) before sharding. With ``activation_offload``, the offloader
             installs its compatible per-layer checkpoint wrapper instead. Mutable
             KV-cache forwards use pure offload instead of unsafe recomputation.
+        activation_checkpointing_policy (str): what the wrapper recomputes; see
+            :func:`~minwm.distributed.activation_checkpoint.checkpoint_context_fn`.
+            Ignored by the offloader's wrapper.
         activation_offload (bool): asynchronously move each FSDP layer's saved
             activations to pinned CPU memory and prefetch them during backward.
             Uses the same top-most layer boundaries as FSDP sharding.
@@ -130,7 +134,7 @@ def shard_model(
         )
 
     if activation_checkpointing and not activation_offload:
-        _apply_activation_checkpointing(model, target_names)
+        _apply_activation_checkpointing(model, target_names, activation_checkpointing_policy)
 
     fsdp_kwargs: dict = {
         "mesh": mesh,
@@ -194,7 +198,9 @@ def _iter_fsdp_targets(
     yield from _walk(model, "")
 
 
-def _apply_activation_checkpointing(model: nn.Module, target_names: list[str]) -> None:
+def _apply_activation_checkpointing(
+    model: nn.Module, target_names: list[str], policy: str = "full"
+) -> None:
     """Wrap each named layer in non-reentrant activation checkpointing, in place.
 
     Recomputes a wrapped layer's forward during backward instead of storing its
@@ -208,14 +214,20 @@ def _apply_activation_checkpointing(model: nn.Module, target_names: list[str]) -
         model (nn.Module): the model whose layers are wrapped in place.
         target_names (list[str]): dotted names of the layers to checkpoint (the
             same set FSDP shards).
+        policy (str): what each wrapper recomputes; see
+            :func:`~minwm.distributed.activation_checkpoint.checkpoint_context_fn`.
     """
     from torch.distributed.algorithms._checkpoint.checkpoint_wrapper import (
         checkpoint_wrapper,
     )
 
+    from .activation_checkpoint import checkpoint_context_fn
+
+    context_fn = checkpoint_context_fn(policy)
     for name in target_names:
         parent_name, _, child_name = name.rpartition(".")
         parent = model.get_submodule(parent_name) if parent_name else model
-        setattr(parent, child_name, checkpoint_wrapper(getattr(parent, child_name)))
+        layer = getattr(parent, child_name)
+        setattr(parent, child_name, checkpoint_wrapper(layer, context_fn=context_fn))
 
     logger.info("FSDP2: activation-checkpointed %d layer module(s)", len(target_names))

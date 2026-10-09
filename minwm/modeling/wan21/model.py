@@ -7,6 +7,7 @@ import torch
 import torch.nn as nn
 from diffusers.configuration_utils import ConfigMixin, register_to_config
 from diffusers.models.modeling_utils import ModelMixin
+from torch.utils.checkpoint import noop_context_fn
 
 from minwm.distributed.collective import sp_all_gather
 from minwm.distributed.parallel_dims import get_parallel_state
@@ -263,6 +264,7 @@ class Wan21Model(ModelMixin, ConfigMixin):
 
         self.init_weights()
         self.gradient_checkpointing = False
+        self.checkpoint_context_fn = noop_context_fn
 
     def _set_gradient_checkpointing(
         self, module=None, value=False, enable=None, gradient_checkpointing_func=None
@@ -400,7 +402,9 @@ class Wan21Model(ModelMixin, ConfigMixin):
         gan_idx = 0
         for ii, block in enumerate(self.blocks):
             if torch.is_grad_enabled() and self.gradient_checkpointing:
-                x = torch.utils.checkpoint.checkpoint(block, x, **kwargs, use_reentrant=False)
+                x = torch.utils.checkpoint.checkpoint(
+                    block, x, **kwargs, use_reentrant=False, context_fn=self.checkpoint_context_fn
+                )
             else:
                 x = block(x, **kwargs)
             if classify_mode and ii in (13, 21, 29):
