@@ -9,6 +9,7 @@ from torch.utils.data import Dataset
 
 from minwm.config import Data
 from minwm.data import build_dataloader, build_dataset, cycle
+from minwm.data.samplers import ResumableDistributedSampler
 from minwm.utils import comm
 
 
@@ -85,13 +86,27 @@ def test_build_dataloader_requires_dataset():
         build_dataloader(Data(batch_size=2))
 
 
-def test_build_dataloader_single_process_has_no_sampler(fake_dataset_module):
-    # On one replica, sampler is None so DataLoader owns shuffling.
+def test_build_dataloader_single_process_is_one_replica(fake_dataset_module):
+    # One replica runs the same epoch-seeded sampler; no process group needed.
     loader = build_dataloader(Data(dataset={"type": "minwm_test_data_fakes:TinyDataset", "n": 6}))
-    assert loader.sampler is not None  # default RandomSampler
-    from torch.utils.data.distributed import DistributedSampler
+    assert isinstance(loader.sampler, ResumableDistributedSampler)
+    assert loader.sampler.num_replicas == 1
 
-    assert not isinstance(loader.sampler, DistributedSampler)
+
+@pytest.mark.parametrize("num_replicas", [1, 2])
+def test_resumable_sampler_reshuffles_and_skips(num_replicas):
+    sampler = ResumableDistributedSampler(range(10), num_replicas=num_replicas, rank=0)
+    sampler.set_epoch(0)
+    epoch0 = list(sampler)
+    sampler.set_epoch(1)
+    epoch1 = list(sampler)
+    assert epoch0 != epoch1
+    assert len(set(epoch1)) == len(epoch1) == len(sampler)
+    sampler.set_epoch(1, start=3)
+    assert list(sampler) == epoch1[3:]
+    assert len(sampler) == len(epoch1)
+    sampler.set_epoch(2)
+    assert len(list(sampler)) == len(epoch1)
 
 
 def test_build_dataloader_drop_last(fake_dataset_module):
@@ -119,3 +134,13 @@ def test_cycle_repeats(fake_dataset_module):
     # 3 distinct samples, cycled: length 7 means it wrapped around twice.
     assert len(seen) == 7
     assert set(seen) == {0.0, 1.0, 2.0}
+
+
+def test_cycle_reshuffles_each_pass(fake_dataset_module):
+    loader = build_dataloader(
+        Data(dataset={"type": "minwm_test_data_fakes:TinyDataset", "n": 8}, batch_size=8)
+    )
+    it = cycle(loader)
+    first, second = (next(it)["x"].flatten().tolist() for _ in range(2))
+    assert sorted(first) == sorted(second)
+    assert first != second

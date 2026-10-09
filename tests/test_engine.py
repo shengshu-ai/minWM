@@ -14,6 +14,7 @@ from minwm.engine import events as events_mod
 from minwm.engine.events import EventStorage, get_event_storage, record_time
 from minwm.engine.monitor import BaseWriter, MetricsProcessor
 from minwm.modeling import build_model
+from minwm.utils import comm
 
 
 @pytest.fixture
@@ -676,3 +677,91 @@ def test_app_state_recipe_without_flag_is_untouched():
         }
     )
     assert not hasattr(loader.recipe, "_generator_ema_seeded")
+
+
+# ---- data order across epochs and resume ---------------------------------
+
+
+class _RecordingRecipe(Recipe):
+    def __init__(self):
+        super().__init__()
+        self.seen = []
+
+    def build_optimizers(self, model):
+        return {"main": torch.optim.SGD(model.parameters(), lr=0.1)}
+
+    def train_one_step(self, model, batch, optimizers, step, auxiliary_models=None):
+        self.seen.extend(batch["prompts"])
+        opt = optimizers["main"]
+        opt.zero_grad()
+        loss = (model(batch["clean_latent"].reshape(-1, 1)) - 1).pow(2).mean()
+        loss.backward()
+        opt.step()
+        return {"loss": loss.item()}
+
+
+class _RecordingTrainer(BaseTrainer):
+    def build_model(self, model_cfg):
+        return nn.Linear(1, 1)
+
+    def build_recipe(self, recipe_cfg):
+        return _RecordingRecipe()
+
+
+def _recording_cfg(output_dir, max_steps, resume=False, length=7, **data):
+    return {
+        "data": {
+            "dataset": {
+                "type": "MockCameraLatentDataset",
+                "length": length,
+                "num_frames": 1,
+                "channels": 1,
+                "height": 1,
+                "width": 1,
+                "with_camera": False,
+            },
+            "batch_size": 2,
+            **data,
+        },
+        "training": {
+            "seed": 0,
+            "max_steps": max_steps,
+            "log_interval": 0,
+            "output_dir": output_dir,
+        },
+        "checkpoint": {"resume": resume},
+    }
+
+
+@pytest.mark.parametrize("dp_world_size", [1, 2])
+def test_training_reshuffles_every_epoch(monkeypatch, dp_world_size):
+    monkeypatch.setattr(comm, "get_dp_world_size", lambda: dp_world_size)
+    t = _RecordingTrainer(_recording_cfg("", max_steps=9, length=6 * dp_world_size))
+    t.train()
+    per_epoch = len(t.dataloader) * 2
+    epochs = [t.recipe.seen[i : i + per_epoch] for i in range(0, len(t.recipe.seen), per_epoch)]
+    assert len(epochs) == 3
+    assert epochs[0] != epochs[1] and epochs[1] != epochs[2]
+    if dp_world_size == 1:
+        assert all(sorted(e) == sorted(epochs[0]) for e in epochs)
+
+
+@pytest.mark.parametrize(
+    "dp_world_size,stop,data",
+    [
+        (1, 3, {"drop_last": False}),
+        (1, 5, {}),
+        (1, 4, {"shuffle": False}),
+        (2, 3, {"drop_last": False}),
+    ],
+)
+def test_resume_continues_data_stream(tmp_path, monkeypatch, dp_world_size, stop, data):
+    monkeypatch.setattr(comm, "get_dp_world_size", lambda: dp_world_size)
+    full = _RecordingTrainer(_recording_cfg(str(tmp_path / "full"), 9, **data))
+    full.train()
+    first = _RecordingTrainer(_recording_cfg(str(tmp_path / "split"), stop, **data))
+    first.train()
+    resumed = _RecordingTrainer(_recording_cfg(str(tmp_path / "split"), 9, resume=True, **data))
+    resumed.train()
+    assert first.recipe.seen + resumed.recipe.seen == full.recipe.seen
+    assert torch.equal(resumed.model.weight, full.model.weight)

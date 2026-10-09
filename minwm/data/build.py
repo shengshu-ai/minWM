@@ -19,9 +19,10 @@ DP-aware distributed sampler and wraps a ``torch.utils.data.DataLoader``.
 
 The sampler is keyed on data-parallel coordinates (:mod:`minwm.utils.comm`), so
 ranks sharing a sequence-parallel group receive identical batches. On a single
-process it degrades to a plain shuffling loader (no distributed init required).
+process it runs as one replica (no distributed init required).
 """
 
+import itertools
 from typing import Any, Iterator
 
 from torch.utils.data import DataLoader, Dataset
@@ -73,7 +74,6 @@ def build_dataloader(data: Data) -> DataLoader:
     return DataLoader(
         dataset,
         batch_size=data.batch_size,
-        shuffle=data.shuffle if sampler is None else False,
         sampler=sampler,
         drop_last=data.drop_last,
         num_workers=data.num_workers,
@@ -84,7 +84,9 @@ def build_dataloader(data: Data) -> DataLoader:
 
 
 def cycle(dataloader: DataLoader) -> Iterator[Any]:
-    """Yield batches forever, re-iterating the loader each pass."""
-    while True:
-        for batch in dataloader:
-            yield batch
+    """Yield batches forever, advancing the sampler's epoch each pass."""
+    for epoch in itertools.count():
+        set_epoch = getattr(getattr(dataloader, "sampler", None), "set_epoch", None)
+        if set_epoch is not None:
+            set_epoch(epoch)
+        yield from dataloader

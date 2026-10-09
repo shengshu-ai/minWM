@@ -93,7 +93,9 @@ class Checkpoint:
     """Checkpoint / resume knobs."""
 
     resume: bool = False
-    """Resume from the latest checkpoint under the run's ``ckpts/`` dir."""
+    """Resume from the latest checkpoint under the run's ``ckpts/`` dir. The data
+    stream continues from the restored step, which assumes the same dataset,
+    ``data.batch_size`` and data-parallel size as the run that saved it."""
     remote_root: str | None = None
     """Object-store prefix for checkpoints (``s3://bucket/runs`` / ``oss://...``).
     When set, checkpoints and ``latest.txt`` route to

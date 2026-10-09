@@ -26,6 +26,7 @@ from minwm.config import MWMConfig
 from minwm.config.lazy import build as _build_cfg
 from minwm.config.schema import Data
 from minwm.data import build_dataloader as _build_dataloader_cfg
+from minwm.data.samplers import ResumableDistributedSampler
 from minwm.modeling import build_model as _build_model_cfg
 from minwm.utils import comm
 from minwm.utils.logger import init_logger
@@ -166,6 +167,7 @@ class BaseTrainer:
         self.optimizers.update(self.recipe.build_auxiliary_optimizers(self.auxiliary_models))
         self.dataloader = self.build_dataloader(self.cfg.data)
         self._data_iter: Iterator[Any] | None = None
+        self._data_epoch = 0
 
         self.storage = EventStorage(self.step)
         run_dir = local_run_dir(self.cfg.training.output_dir)
@@ -523,12 +525,37 @@ class BaseTrainer:
 
     def _next_batch(self) -> Any:
         if self._data_iter is None:
-            self._data_iter = iter(self.dataloader)
+            self._data_iter = self._data_epoch_iter(*self._data_position())
         try:
             return next(self._data_iter)
         except StopIteration:
-            self._data_iter = iter(self.dataloader)
+            self._data_iter = self._data_epoch_iter(self._data_epoch + 1)
             return next(self._data_iter)
+
+    def _data_position(self) -> tuple[int, int]:
+        """``(epoch, batch index)`` reached after ``self.step`` one-batch steps."""
+        try:
+            batches_per_epoch = len(self.dataloader)
+        except TypeError:
+            return 0, 0
+        return divmod(self.step, batches_per_epoch) if batches_per_epoch else (0, 0)
+
+    def _data_epoch_iter(self, epoch: int, skip: int = 0) -> Iterator[Any]:
+        self._data_epoch = epoch
+        sampler = getattr(self.dataloader, "sampler", None)
+        batch_size = getattr(self.dataloader, "batch_size", None)
+        if isinstance(sampler, ResumableDistributedSampler) and batch_size:
+            sampler.set_epoch(epoch, start=skip * batch_size)
+            return iter(self.dataloader)
+        if hasattr(sampler, "set_epoch"):
+            sampler.set_epoch(epoch)
+        if skip:
+            logger.warning(
+                "the dataloader's sampler cannot skip consumed batches; the resumed run "
+                "restarts data epoch %d from its first batch",
+                epoch,
+            )
+        return iter(self.dataloader)
 
     def train(self) -> None:
         """Run the optimization loop: per-step recipe call + periodic log / eval / ckpt.
