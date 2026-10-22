@@ -11,6 +11,7 @@ from minwm.distributed.parallel_dims import get_parallel_state
 from minwm.modeling.wan21.layers.norm import WanLayerNorm
 
 from .attention import WAN_CROSSATTENTION_CLASSES, WanSelfAttention
+from .packed_tf import packed_tf_attention, packed_tf_enabled, tf_geometry
 
 __all__ = ["WanAttentionBlock", "CausalWanSelfAttention", "CausalWanAttentionBlock"]
 
@@ -116,6 +117,10 @@ class CausalWanSelfAttention(nn.Module):
         sink_size (int): number of sink frames whose KV entries are never evicted.
         qk_norm (bool): QK normalisation.
         eps (float): epsilon for RMSNorm.
+        use_prope (bool): enable PRoPE camera conditioning.
+        num_frame_per_block (int): latent frames per causal block; the
+            teacher-forcing mask (and the packed lowering of it) is built in
+            units of these blocks.
     """
 
     def __init__(
@@ -127,12 +132,14 @@ class CausalWanSelfAttention(nn.Module):
         qk_norm: bool = True,
         eps: float = 1e-6,
         use_prope: bool = False,
+        num_frame_per_block: int = 1,
     ):
         assert dim % num_heads == 0
         super().__init__()
         self.dim = dim
         self.num_heads = num_heads
         self.head_dim = dim // num_heads
+        self.num_frame_per_block = num_frame_per_block
         self.local_attn_size = local_attn_size
         self.sink_size = sink_size
         self.max_attention_size = 31200 if local_attn_size == -1 else local_attn_size * 1560
@@ -182,8 +189,6 @@ class CausalWanSelfAttention(nn.Module):
         Returns:
             Tensor: attention output, shape ``[B, L, C]``.
         """
-        _flex = _get_flex_attention()
-
         from minwm.modeling.wan21.layers.rope import causal_rope_apply, rope_apply
 
         b, s, n, d = *x.shape[:2], self.num_heads, self.head_dim
@@ -284,31 +289,48 @@ class CausalWanSelfAttention(nn.Module):
                     dim=1,
                 )
 
-                pad = math.ceil(q.shape[1] / 128) * 128 - q.shape[1]
-
-                def _pad(t):
-                    return (
-                        torch.cat([t, t.new_zeros(t.shape[0], pad, *t.shape[2:])], dim=1)
-                        if pad
-                        else t
+                if packed_tf_enabled():
+                    # The same mask, lowered to contiguous (q, kv) segments and run
+                    # as one un-masked varlen call: no padded Q/K/V, no gather of Q
+                    # and no repack of the output.
+                    geom = tf_geometry(
+                        clean_tokens=seq_lens[0].item(),
+                        block_tokens=self.num_frame_per_block * math.prod(grid_sizes[0][1:]).item(),
+                        batch=q.shape[0],
+                        device=q.device,
                     )
+                    x = packed_tf_attention(roped_q, roped_k, v, geom)
+                    if prope_enabled:
+                        x_prope = packed_tf_attention(q_p, k_p, v_p, geom)
+                else:
+                    _flex = _get_flex_attention()
+                    pad = math.ceil(q.shape[1] / 128) * 128 - q.shape[1]
 
-                x = _flex(
-                    _pad(roped_q).transpose(2, 1),
-                    _pad(roped_k).transpose(2, 1),
-                    _pad(v).transpose(2, 1),
-                    block_mask=block_mask,
-                )
-                x = (x[:, :, : q.shape[1]] if pad else x).transpose(2, 1)
+                    def _pad(t):
+                        return (
+                            torch.cat([t, t.new_zeros(t.shape[0], pad, *t.shape[2:])], dim=1)
+                            if pad
+                            else t
+                        )
 
-                if prope_enabled:
-                    x_prope = _flex(
-                        _pad(q_p).transpose(2, 1),
-                        _pad(k_p).transpose(2, 1),
-                        _pad(v_p).transpose(2, 1),
+                    x = _flex(
+                        _pad(roped_q).transpose(2, 1),
+                        _pad(roped_k).transpose(2, 1),
+                        _pad(v).transpose(2, 1),
                         block_mask=block_mask,
                     )
-                    x_prope = (x_prope[:, :, : q_p.shape[1]] if pad else x_prope).transpose(2, 1)
+                    x = (x[:, :, : q.shape[1]] if pad else x).transpose(2, 1)
+
+                    if prope_enabled:
+                        x_prope = _flex(
+                            _pad(q_p).transpose(2, 1),
+                            _pad(k_p).transpose(2, 1),
+                            _pad(v_p).transpose(2, 1),
+                            block_mask=block_mask,
+                        )
+                        x_prope = (x_prope[:, :, : q_p.shape[1]] if pad else x_prope).transpose(
+                            2, 1
+                        )
 
                 if sp_enabled and sp_pad_per_half > 0:
                     B_x, S_x, H_x, D_x = x.shape
@@ -483,6 +505,8 @@ class CausalWanAttentionBlock(nn.Module):
         cross_attn_norm (bool): extra LayerNorm before cross-attention.
         eps (float): epsilon for norms.
         use_prope (bool): enable PRoPE camera conditioning on the self-attention.
+        num_frame_per_block (int): latent frames per causal block, forwarded to
+            the self-attention (see :class:`CausalWanSelfAttention`).
     """
 
     def __init__(
@@ -497,11 +521,12 @@ class CausalWanAttentionBlock(nn.Module):
         cross_attn_norm=False,
         eps=1e-6,
         use_prope=False,
+        num_frame_per_block=1,
     ):
         super().__init__()
         self.norm1 = WanLayerNorm(dim, eps)
         self.self_attn = CausalWanSelfAttention(
-            dim, num_heads, local_attn_size, sink_size, qk_norm, eps, use_prope
+            dim, num_heads, local_attn_size, sink_size, qk_norm, eps, use_prope, num_frame_per_block
         )
         self.norm3 = (
             WanLayerNorm(dim, eps, elementwise_affine=True) if cross_attn_norm else nn.Identity()

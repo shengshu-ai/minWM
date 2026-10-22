@@ -23,14 +23,89 @@ from minwm.modeling.wan21.layers.rope import rope_params, sinusoidal_embedding_1
 
 from .blocks import CausalWanAttentionBlock
 from .model import MLPProj
+from .packed_tf import packed_tf_enabled
 
-__all__ = ["CausalHead", "CausalWan21Model", "is_causal_block"]
+__all__ = [
+    "CausalHead",
+    "CausalWan21Model",
+    "is_causal_block",
+]
 
 
 def is_causal_block(name: str, module: nn.Module) -> bool:
     """True for top-level transformer blocks (``blocks.<i>``), for FSDP sharding."""
     parts = name.split(".")
     return len(parts) >= 2 and parts[0] == "blocks" and parts[1].isdigit()
+
+
+def _teacher_forcing_mask_mod(
+    *,
+    num_frames: int = 21,
+    frame_seqlen: int = 1560,
+    num_frame_per_block: int = 1,
+    padded_length: int = 0,
+    device=None,
+):
+    """The teacher-forcing mask, as a flex_attention ``mask_mod``.
+
+    ``num_frames`` frames of ``frame_seqlen`` tokens are clean, then the same
+    number are noisy. A clean row sees the causal *block* prefix it belongs to
+    (``num_frame_per_block`` frames per block), a noisy row sees the clean
+    prefix and its own noisy block, and every row sees itself — the ``q == kv``
+    term is what makes trailing alignment padding visible at all (it is
+    otherwise contained in the ranges above, see ``packed_tf``).
+
+    Args:
+        num_frames (int): number of latent frames (per half).
+        frame_seqlen (int): tokens per latent frame.
+        num_frame_per_block (int): frames grouped into one causal chunk.
+        padded_length (int): trailing padding appended to the sequence.
+        device (torch.device | str): device for the index tensors.
+
+    Returns:
+        Callable: ``attention_mask(b, h, q_idx, kv_idx)`` over flat indices of
+        the padded sequence. Called on dense ``q_idx``/``kv_idx`` grids it is
+        the mask as a bool tensor — the reference the packed lowering
+        (:mod:`minwm.modeling.wan21.packed_tf`) is checked against.
+    """
+    total_length = num_frames * frame_seqlen * 2
+    length = total_length + padded_length
+    clean_ends = num_frames * frame_seqlen
+
+    context_ends = torch.zeros(length, device=device, dtype=torch.long)
+    noise_context_starts = torch.zeros(length, device=device, dtype=torch.long)
+    noise_context_ends = torch.zeros(length, device=device, dtype=torch.long)
+    noise_noise_starts = torch.zeros(length, device=device, dtype=torch.long)
+    noise_noise_ends = torch.zeros(length, device=device, dtype=torch.long)
+
+    attention_block_size = frame_seqlen * num_frame_per_block
+    frame_indices = torch.arange(
+        0, num_frames * frame_seqlen, step=attention_block_size, device=device, dtype=torch.long
+    )
+    for start in frame_indices:
+        context_ends[start : start + attention_block_size] = start + attention_block_size
+
+    noisy_start_list = torch.arange(
+        num_frames * frame_seqlen,
+        total_length,
+        step=attention_block_size,
+        device=device,
+        dtype=torch.long,
+    )
+    noisy_end_list = noisy_start_list + attention_block_size
+    for block_index, (start, end) in enumerate(zip(noisy_start_list, noisy_end_list)):
+        noise_noise_starts[start:end] = start
+        noise_noise_ends[start:end] = end
+        noise_context_ends[start:end] = block_index * attention_block_size
+
+    def attention_mask(b, h, q_idx, kv_idx):
+        clean_mask = (q_idx < clean_ends) & (kv_idx < context_ends[q_idx])
+        c1 = (kv_idx < noise_noise_ends[q_idx]) & (kv_idx >= noise_noise_starts[q_idx])
+        c2 = (kv_idx < noise_context_ends[q_idx]) & (kv_idx >= noise_context_starts[q_idx])
+        noise_mask = (q_idx >= clean_ends) & (c1 | c2)
+        return (q_idx == kv_idx) | clean_mask | noise_mask
+
+    return attention_mask
 
 
 class CausalHead(nn.Module):
@@ -159,6 +234,9 @@ class CausalWan21Model(ModelMixin, ConfigMixin):
                     cross_attn_norm,
                     eps,
                     use_prope,
+                    # The teacher-forcing mask is built in units of these blocks
+                    # here and lowered that way by packed_tf; keep the two in sync.
+                    num_frame_per_block=num_frame_per_block,
                 )
                 for _ in range(num_layers)
             ]
@@ -257,7 +335,8 @@ class CausalWan21Model(ModelMixin, ConfigMixin):
         """Teacher-forcing mask over concatenated ``[clean | noisy]`` token sequence.
 
         Clean tokens attend block-wise causally among themselves; each noisy block
-        attends to all preceding clean blocks plus itself.
+        attends to all preceding clean blocks plus itself. The mask itself is
+        :func:`_teacher_forcing_mask_mod`; this only wraps it into a ``BlockMask``.
 
         Args:
             device (torch.device | str): device for the mask.
@@ -270,48 +349,13 @@ class CausalWan21Model(ModelMixin, ConfigMixin):
         """
         total_length = num_frames * frame_seqlen * 2
         padded_length = math.ceil(total_length / 128) * 128 - total_length
-        clean_ends = num_frames * frame_seqlen
-
-        context_ends = torch.zeros(total_length + padded_length, device=device, dtype=torch.long)
-        noise_context_starts = torch.zeros(
-            total_length + padded_length, device=device, dtype=torch.long
-        )
-        noise_context_ends = torch.zeros(
-            total_length + padded_length, device=device, dtype=torch.long
-        )
-        noise_noise_starts = torch.zeros(
-            total_length + padded_length, device=device, dtype=torch.long
-        )
-        noise_noise_ends = torch.zeros(
-            total_length + padded_length, device=device, dtype=torch.long
-        )
-
-        attention_block_size = frame_seqlen * num_frame_per_block
-        frame_indices = torch.arange(
-            0, num_frames * frame_seqlen, step=attention_block_size, device=device, dtype=torch.long
-        )
-        for start in frame_indices:
-            context_ends[start : start + attention_block_size] = start + attention_block_size
-
-        noisy_start_list = torch.arange(
-            num_frames * frame_seqlen,
-            total_length,
-            step=attention_block_size,
+        attention_mask = _teacher_forcing_mask_mod(
+            num_frames=num_frames,
+            frame_seqlen=frame_seqlen,
+            num_frame_per_block=num_frame_per_block,
+            padded_length=padded_length,
             device=device,
-            dtype=torch.long,
         )
-        noisy_end_list = noisy_start_list + attention_block_size
-        for block_index, (start, end) in enumerate(zip(noisy_start_list, noisy_end_list)):
-            noise_noise_starts[start:end] = start
-            noise_noise_ends[start:end] = end
-            noise_context_ends[start:end] = block_index * attention_block_size
-
-        def attention_mask(b, h, q_idx, kv_idx):
-            clean_mask = (q_idx < clean_ends) & (kv_idx < context_ends[q_idx])
-            c1 = (kv_idx < noise_noise_ends[q_idx]) & (kv_idx >= noise_noise_starts[q_idx])
-            c2 = (kv_idx < noise_context_ends[q_idx]) & (kv_idx >= noise_context_starts[q_idx])
-            noise_mask = (q_idx >= clean_ends) & (c1 | c2)
-            return (q_idx == kv_idx) | clean_mask | noise_mask
 
         return create_block_mask(
             attention_mask,
@@ -541,8 +585,10 @@ class CausalWan21Model(ModelMixin, ConfigMixin):
         """Training forward pass (teacher forcing or diffusion forcing).
 
         When ``clean_x`` is given, runs teacher forcing: clean and noisy halves
-        are concatenated and the teacher-forcing block mask is built. Otherwise
-        runs diffusion forcing with a block-wise causal mask.
+        are concatenated and the teacher-forcing block mask is built — unless the
+        packed attention path is on, which lowers the mask itself and needs no
+        ``BlockMask``. Otherwise runs diffusion forcing with a block-wise causal
+        mask.
 
         Args:
             x (list[Tensor]): noisy input video tensors, each ``[C_in, F, H, W]``.
@@ -575,12 +621,15 @@ class CausalWan21Model(ModelMixin, ConfigMixin):
             if clean_x is not None:
                 if self.independent_first_frame:
                     raise NotImplementedError()
-                self.block_mask = self._prepare_teacher_forcing_mask(
-                    device,
-                    num_frames=num_frames,
-                    frame_seqlen=mask_frame_seqlen,
-                    num_frame_per_block=self.num_frame_per_block,
-                )
+                # The packed path lowers the mask itself and never reads a
+                # BlockMask; building one here would be dead weight.
+                if not packed_tf_enabled():
+                    self.block_mask = self._prepare_teacher_forcing_mask(
+                        device,
+                        num_frames=num_frames,
+                        frame_seqlen=mask_frame_seqlen,
+                        num_frame_per_block=self.num_frame_per_block,
+                    )
             elif self.independent_first_frame:
                 self.block_mask = self._prepare_blockwise_causal_attn_mask_i2v(
                     device,
