@@ -305,13 +305,6 @@ def packed_tf_attention(
         ValueError: on a shape/dtype that the lowering cannot serve.
         RuntimeError: if flash-attn is not installed.
     """
-    try:
-        import flash_attn
-    except ModuleNotFoundError as exc:  # pragma: no cover - env dependent
-        raise RuntimeError(
-            f"{ENV_VAR}=packed requires flash-attn 2 (import flash_attn failed)"
-        ) from exc
-
     batch, length, heads, head_dim = q.shape
     if length != geom.total_tokens or batch != geom.batch:
         raise ValueError(
@@ -327,6 +320,13 @@ def packed_tf_attention(
             f"packed TF attention needs fp16/bf16 (got {q.dtype}); "
             f"unset {ENV_VAR} to use flex attention in full precision"
         )
+
+    try:
+        import flash_attn
+    except ModuleNotFoundError as exc:
+        raise RuntimeError(
+            f"{ENV_VAR}=packed requires flash-attn 2 (import flash_attn failed)"
+        ) from exc
 
     # A view for the contiguous q the model passes — the rows are never reordered.
     q_flat = q.reshape(batch * length, heads, head_dim)

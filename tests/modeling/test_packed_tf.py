@@ -288,8 +288,8 @@ class TestPacking:
         x = torch.randn(geom.batch, geom.total_tokens, 2, 4, requires_grad=True)
         flat = x.reshape(-1, 2, 4)
         grad_out = torch.randn(geom.kv_tokens, 2, 4)
-        got, = torch.autograd.grad(ptf._pack_kv(x, geom), x, grad_out)
-        expected, = torch.autograd.grad(flat.index_select(0, rows), x, grad_out)
+        (got,) = torch.autograd.grad(ptf._pack_kv(x, geom), x, grad_out)
+        (expected,) = torch.autograd.grad(flat.index_select(0, rows), x, grad_out)
 
         assert torch.equal(got, expected)
         # Not just placement: a row that several segments carry gets each copy's
@@ -449,7 +449,8 @@ class TestFlashAttentionCall:
         assert seen["q"].data_ptr() == q.data_ptr()
         assert seen["q"].shape == (total, heads, head_dim)
 
-    def test_shape_and_dtype_mismatch_raise(self):
+    def test_shape_and_dtype_mismatch_raise(self, monkeypatch):
+        monkeypatch.setitem(sys.modules, "flash_attn", None)
         geom = ptf.tf_geometry(batch=1, device=torch.device("cpu"), **TINY_REAL)
         good = torch.randn(1, geom.total_tokens, 2, 4, dtype=torch.bfloat16)
         with pytest.raises(ValueError, match="cached geometry"):
@@ -458,6 +459,16 @@ class TestFlashAttentionCall:
             ptf.packed_tf_attention(good.float(), good.float(), good.float(), geom)
         with pytest.raises(ValueError, match="shapes differ"):
             ptf.packed_tf_attention(good, good[:, : geom.total_tokens - 6], good, geom)
+
+    def test_missing_flash_attn_raises(self, monkeypatch):
+        monkeypatch.setitem(sys.modules, "flash_attn", None)
+        geom = ptf.tf_geometry(batch=1, device=torch.device("cpu"), **TINY_REAL)
+        good = torch.randn(1, geom.total_tokens, 2, 4, dtype=torch.bfloat16)
+
+        with pytest.raises(RuntimeError, match="requires flash-attn 2") as exc_info:
+            ptf.packed_tf_attention(good, good, good, geom)
+
+        assert isinstance(exc_info.value.__cause__, ModuleNotFoundError)
 
 
 # A 2-layer model of the same shape as the real one, small enough for CPU.
